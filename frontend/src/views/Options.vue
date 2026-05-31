@@ -5,9 +5,11 @@ import { h, onMounted, reactive, ref } from 'vue';
 
 import { optionsApi } from '../api/client';
 import { joinList, parseJson, parseList, toJsonText } from '../api/form';
+import { useI18n } from '../i18n';
 
 const loading = ref(false);
 const saving = ref(false);
+const { t } = useI18n();
 const form = reactive({
   listen_on: '',
   listen_on_v6: '',
@@ -42,7 +44,7 @@ const load = async () => {
       logging_categories: toJsonText(options.logging_categories),
     });
   } catch {
-    message.error('Failed to load options');
+    message.error(t('options.loadFailed'));
   } finally {
     loading.value = false;
   }
@@ -65,10 +67,10 @@ const save = async () => {
       logging_channels: parseJson(form.logging_channels, {}),
       logging_categories: parseJson(form.logging_categories, {}),
     });
-    message.success('Options saved');
+    message.success(t('options.saved'));
     await load();
   } catch {
-    message.error('Save failed');
+    message.error(t('common.saveFailed'));
   } finally {
     saving.value = false;
   }
@@ -80,10 +82,10 @@ onMounted(load);
 <template>
   <div class="page">
     <div class="page-header">
-      <h1 class="page-title">Global Options</h1>
+      <h1 class="page-title">{{ t('options.title') }}</h1>
       <div class="page-actions">
         <a-button :icon="h(ReloadOutlined)" :loading="loading" @click="load" />
-        <a-button type="primary" :icon="h(SaveOutlined)" :loading="saving" @click="save">Save</a-button>
+        <a-button type="primary" :icon="h(SaveOutlined)" :loading="saving" @click="save">{{ t('common.save') }}</a-button>
       </div>
     </div>
 
@@ -94,10 +96,10 @@ onMounted(load);
             <a-form-item label="listen-on"><a-input v-model:value="form.listen_on" /></a-form-item>
             <a-form-item label="listen-on-v6"><a-input v-model:value="form.listen_on_v6" /></a-form-item>
             <a-form-item label="forwarders"><a-input v-model:value="form.forwarders" /></a-form-item>
-            <a-form-item label="forward mode">
+            <a-form-item :label="t('options.forwardMode')">
               <a-segmented v-model:value="form.forward_mode" :options="['first', 'only']" />
             </a-form-item>
-            <a-form-item label="recursion"><a-switch v-model:checked="form.recursion" /></a-form-item>
+            <a-form-item :label="t('views.recursion')"><a-switch v-model:checked="form.recursion" /></a-form-item>
           </a-col>
           <a-col :xs="24" :lg="12">
             <a-form-item label="allow-query"><a-input v-model:value="form.allow_query" /></a-form-item>
@@ -105,18 +107,18 @@ onMounted(load);
             <a-form-item label="dnssec-validation">
               <a-segmented v-model:value="form.dnssec_validation" :options="['auto', 'yes', 'no']" />
             </a-form-item>
-            <a-form-item label="response-policy zones"><a-input v-model:value="form.response_policy" /></a-form-item>
+            <a-form-item :label="t('options.responsePolicy')"><a-input v-model:value="form.response_policy" /></a-form-item>
           </a-col>
         </a-row>
         <a-row :gutter="16">
           <a-col :xs="24" :lg="8">
-            <a-form-item label="rate-limit JSON"><a-textarea v-model:value="form.rate_limit" :rows="8" class="mono" /></a-form-item>
+            <a-form-item :label="t('options.rateLimitJson')"><a-textarea v-model:value="form.rate_limit" :rows="8" class="mono" /></a-form-item>
           </a-col>
           <a-col :xs="24" :lg="8">
-            <a-form-item label="logging channels JSON"><a-textarea v-model:value="form.logging_channels" :rows="8" class="mono" /></a-form-item>
+            <a-form-item :label="t('options.loggingChannelsJson')"><a-textarea v-model:value="form.logging_channels" :rows="8" class="mono" /></a-form-item>
           </a-col>
           <a-col :xs="24" :lg="8">
-            <a-form-item label="logging categories JSON"><a-textarea v-model:value="form.logging_categories" :rows="8" class="mono" /></a-form-item>
+            <a-form-item :label="t('options.loggingCategoriesJson')"><a-textarea v-model:value="form.logging_categories" :rows="8" class="mono" /></a-form-item>
           </a-col>
         </a-row>
       </a-form>

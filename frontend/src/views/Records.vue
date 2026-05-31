@@ -5,6 +5,7 @@ import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 
 import { recordsApi, zonesApi } from '../api/client';
 import type { RecordItem, Zone } from '../api/types';
+import { useI18n } from '../i18n';
 
 const zones = ref<Zone[]>([]);
 const records = ref<RecordItem[]>([]);
@@ -14,6 +15,7 @@ const modalOpen = ref(false);
 const importOpen = ref(false);
 const editingId = ref<number | null>(null);
 const importText = ref('');
+const { t } = useI18n();
 
 const form = reactive({
   name: '@',
@@ -28,14 +30,14 @@ const form = reactive({
 
 const selectedZone = computed(() => zones.value.find((zone) => zone.id === selectedZoneId.value));
 
-const columns = [
-  { title: 'Name', dataIndex: 'name', key: 'name' },
-  { title: 'Type', dataIndex: 'record_type', key: 'record_type', width: 100 },
-  { title: 'Value', dataIndex: 'value', key: 'value' },
-  { title: 'TTL', dataIndex: 'ttl', key: 'ttl', width: 110 },
-  { title: 'Priority', dataIndex: 'priority', key: 'priority', width: 110 },
-  { title: 'Actions', key: 'actions', width: 120 },
-];
+const columns = computed(() => [
+  { title: t('common.name'), dataIndex: 'name', key: 'name' },
+  { title: t('common.type'), dataIndex: 'record_type', key: 'record_type', width: 100 },
+  { title: t('common.value'), dataIndex: 'value', key: 'value' },
+  { title: t('common.ttl'), dataIndex: 'ttl', key: 'ttl', width: 110 },
+  { title: t('common.priority'), dataIndex: 'priority', key: 'priority', width: 110 },
+  { title: t('common.actions'), key: 'actions', width: 120 },
+]);
 
 const loadZones = async () => {
   zones.value = await zonesApi.list();
@@ -51,7 +53,7 @@ const loadRecords = async () => {
   try {
     records.value = await recordsApi.list(selectedZoneId.value);
   } catch {
-    message.error('Failed to load records');
+    message.error(t('records.loadFailed'));
   } finally {
     loading.value = false;
   }
@@ -88,24 +90,24 @@ const save = async () => {
   try {
     if (editingId.value) {
       await recordsApi.update(editingId.value, payload);
-      message.success('Record updated');
+      message.success(t('records.updated'));
     } else {
       await recordsApi.create(selectedZoneId.value, payload);
-      message.success('Record created');
+      message.success(t('records.created'));
     }
     modalOpen.value = false;
     await loadRecords();
   } catch {
-    message.error('Save failed');
+    message.error(t('common.saveFailed'));
   }
 };
 
 const remove = (record: RecordItem) => {
   Modal.confirm({
-    title: `Delete ${record.name} ${record.record_type}?`,
+    title: t('records.confirmDelete', { name: record.name, type: record.record_type }),
     onOk: async () => {
       await recordsApi.remove(record.id);
-      message.success('Record deleted');
+      message.success(t('records.deleted'));
       await loadRecords();
     },
   });
@@ -115,7 +117,7 @@ const importZone = async () => {
   if (!selectedZoneId.value) return;
   await zonesApi.import(selectedZoneId.value, importText.value);
   importOpen.value = false;
-  message.success('Zone file imported');
+  message.success(t('records.imported'));
   await loadRecords();
 };
 
@@ -129,14 +131,14 @@ onMounted(async () => {
 <template>
   <div class="page">
     <div class="page-header">
-      <h1 class="page-title">Records</h1>
+      <h1 class="page-title">{{ t('nav.records') }}</h1>
       <div class="page-actions">
-        <a-select v-model:value="selectedZoneId" style="width: 260px" placeholder="Select zone">
+        <a-select v-model:value="selectedZoneId" style="width: 260px" :placeholder="t('common.selectZone')">
           <a-select-option v-for="zone in zones" :key="zone.id" :value="zone.id">{{ zone.name }}</a-select-option>
         </a-select>
         <a-button :icon="h(ReloadOutlined)" :loading="loading" @click="loadRecords" />
-        <a-button :icon="h(UploadOutlined)" :disabled="!selectedZoneId" @click="importOpen = true">Import</a-button>
-        <a-button type="primary" :icon="h(PlusOutlined)" :disabled="!selectedZoneId" @click="openCreate">New record</a-button>
+        <a-button :icon="h(UploadOutlined)" :disabled="!selectedZoneId" @click="importOpen = true">{{ t('common.import') }}</a-button>
+        <a-button type="primary" :icon="h(PlusOutlined)" :disabled="!selectedZoneId" @click="openCreate">{{ t('records.new') }}</a-button>
       </div>
     </div>
 
@@ -158,12 +160,12 @@ onMounted(async () => {
       </template>
     </a-table>
 
-    <a-modal v-model:open="modalOpen" :title="editingId ? 'Edit record' : 'New record'" @ok="save">
+    <a-modal v-model:open="modalOpen" :title="editingId ? t('records.edit') : t('records.new')" @ok="save">
       <a-form layout="vertical">
         <a-row :gutter="12">
-          <a-col :span="12"><a-form-item label="Name"><a-input v-model:value="form.name" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('common.name')"><a-input v-model:value="form.name" /></a-form-item></a-col>
           <a-col :span="12">
-            <a-form-item label="Type">
+            <a-form-item :label="t('common.type')">
               <a-select v-model:value="form.record_type">
                 <a-select-option value="A">A</a-select-option>
                 <a-select-option value="AAAA">AAAA</a-select-option>
@@ -179,20 +181,20 @@ onMounted(async () => {
             </a-form-item>
           </a-col>
         </a-row>
-        <a-form-item label="Value"><a-input v-model:value="form.value" /></a-form-item>
+        <a-form-item :label="t('common.value')"><a-input v-model:value="form.value" /></a-form-item>
         <a-row :gutter="12">
-          <a-col :span="12"><a-form-item label="TTL"><a-input-number v-model:value="form.ttl" style="width: 100%" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="Priority"><a-input-number v-model:value="form.priority" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('common.ttl')"><a-input-number v-model:value="form.ttl" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('common.priority')"><a-input-number v-model:value="form.priority" style="width: 100%" /></a-form-item></a-col>
         </a-row>
         <a-row :gutter="12">
-          <a-col :span="12"><a-form-item label="Weight"><a-input-number v-model:value="form.weight" style="width: 100%" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="Port"><a-input-number v-model:value="form.port" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('common.weight')"><a-input-number v-model:value="form.weight" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('common.port')"><a-input-number v-model:value="form.port" style="width: 100%" /></a-form-item></a-col>
         </a-row>
-        <a-form-item label="Comment"><a-input v-model:value="form.comment" /></a-form-item>
+        <a-form-item :label="t('common.comment')"><a-input v-model:value="form.comment" /></a-form-item>
       </a-form>
     </a-modal>
 
-    <a-modal v-model:open="importOpen" title="Import BIND zone file" width="720px" @ok="importZone">
+    <a-modal v-model:open="importOpen" :title="t('records.importZoneFile')" width="720px" @ok="importZone">
       <a-textarea v-model:value="importText" :rows="16" class="mono" />
     </a-modal>
   </div>

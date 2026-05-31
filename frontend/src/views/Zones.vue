@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { DeleteOutlined, DownloadOutlined, EditOutlined, PlusOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
-import { h, onMounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, reactive, ref } from 'vue';
 
 import { joinList, parseList } from '../api/form';
 import { zonesApi } from '../api/client';
 import type { Zone } from '../api/types';
+import { useI18n } from '../i18n';
 
 const loading = ref(false);
 const saving = ref(false);
 const modalOpen = ref(false);
 const editingId = ref<number | null>(null);
 const zones = ref<Zone[]>([]);
+const { t } = useI18n();
 
 const form = reactive({
   name: '',
@@ -30,21 +32,21 @@ const form = reactive({
   forwarders: '',
 });
 
-const columns = [
-  { title: 'Zone', dataIndex: 'name', key: 'name' },
-  { title: 'Type', dataIndex: 'zone_type', key: 'zone_type', width: 120 },
-  { title: 'Serial', dataIndex: 'serial', key: 'serial', width: 140 },
-  { title: 'Records', key: 'records', width: 110 },
+const columns = computed(() => [
+  { title: t('zones.zone'), dataIndex: 'name', key: 'name' },
+  { title: t('common.type'), dataIndex: 'zone_type', key: 'zone_type', width: 120 },
+  { title: t('zones.serial'), dataIndex: 'serial', key: 'serial', width: 140 },
+  { title: t('zones.records'), key: 'records', width: 110 },
   { title: 'DNSSEC', key: 'dnssec', width: 110 },
-  { title: 'Actions', key: 'actions', width: 220 },
-];
+  { title: t('common.actions'), key: 'actions', width: 220 },
+]);
 
 const load = async () => {
   loading.value = true;
   try {
     zones.value = await zonesApi.list();
   } catch {
-    message.error('Failed to load zones');
+    message.error(t('zones.loadFailed'));
   } finally {
     loading.value = false;
   }
@@ -105,15 +107,15 @@ const save = async () => {
   try {
     if (editingId.value) {
       await zonesApi.update(editingId.value, payload());
-      message.success('Zone updated');
+      message.success(t('zones.updated'));
     } else {
       await zonesApi.create(payload());
-      message.success('Zone created');
+      message.success(t('zones.created'));
     }
     modalOpen.value = false;
     await load();
   } catch {
-    message.error('Save failed');
+    message.error(t('common.saveFailed'));
   } finally {
     saving.value = false;
   }
@@ -121,10 +123,10 @@ const save = async () => {
 
 const remove = (zone: Zone) => {
   Modal.confirm({
-    title: `Delete ${zone.name}?`,
+    title: t('common.confirmDelete', { name: zone.name }),
     onOk: async () => {
       await zonesApi.remove(zone.id);
-      message.success('Zone deleted');
+      message.success(t('zones.deleted'));
       await load();
     },
   });
@@ -132,7 +134,7 @@ const remove = (zone: Zone) => {
 
 const writeFiles = async (zone: Zone) => {
   await zonesApi.writeFiles(zone.id);
-  message.success('Configuration files generated');
+  message.success(t('zones.filesGenerated'));
 };
 
 const downloadZone = async (zone: Zone) => {
@@ -152,10 +154,10 @@ onMounted(load);
 <template>
   <div class="page">
     <div class="page-header">
-      <h1 class="page-title">Zones</h1>
+      <h1 class="page-title">{{ t('nav.zones') }}</h1>
       <div class="page-actions">
         <a-button :icon="h(ReloadOutlined)" :loading="loading" @click="load" />
-        <a-button type="primary" :icon="h(PlusOutlined)" @click="openCreate">New zone</a-button>
+        <a-button type="primary" :icon="h(PlusOutlined)" @click="openCreate">{{ t('zones.new') }}</a-button>
       </div>
     </div>
 
@@ -169,21 +171,21 @@ onMounted(load);
         </template>
         <template v-else-if="column.key === 'dnssec'">
           <a-tag :color="record.is_dnssec_signed ? 'green' : 'default'">
-            {{ record.is_dnssec_signed ? 'signed' : 'unsigned' }}
+            {{ record.is_dnssec_signed ? t('zones.signed') : t('zones.unsigned') }}
           </a-tag>
         </template>
         <template v-else-if="column.key === 'actions'">
           <a-space>
-            <a-tooltip title="Export zone file">
+            <a-tooltip :title="t('zones.exportFile')">
               <a-button :icon="h(DownloadOutlined)" @click="downloadZone(record)" />
             </a-tooltip>
-            <a-tooltip title="Generate BIND files">
+            <a-tooltip :title="t('zones.generateFiles')">
               <a-button :icon="h(SaveOutlined)" @click="writeFiles(record)" />
             </a-tooltip>
-            <a-tooltip title="Edit">
+            <a-tooltip :title="t('common.edit')">
               <a-button :icon="h(EditOutlined)" @click="openEdit(record)" />
             </a-tooltip>
-            <a-tooltip title="Delete">
+            <a-tooltip :title="t('common.delete')">
               <a-button danger :icon="h(DeleteOutlined)" @click="remove(record)" />
             </a-tooltip>
           </a-space>
@@ -191,10 +193,10 @@ onMounted(load);
       </template>
     </a-table>
 
-    <a-modal v-model:open="modalOpen" :title="editingId ? 'Edit zone' : 'New zone'" :confirm-loading="saving" @ok="save">
+    <a-modal v-model:open="modalOpen" :title="editingId ? t('zones.edit') : t('zones.new')" :confirm-loading="saving" @ok="save">
       <a-form layout="vertical">
-        <a-form-item label="Zone name"><a-input v-model:value="form.name" placeholder="example.com" /></a-form-item>
-        <a-form-item label="Type">
+        <a-form-item :label="t('zones.name')"><a-input v-model:value="form.name" placeholder="example.com" /></a-form-item>
+        <a-form-item :label="t('common.type')">
           <a-select v-model:value="form.zone_type">
             <a-select-option value="master">master</a-select-option>
             <a-select-option value="slave">slave</a-select-option>
@@ -204,17 +206,17 @@ onMounted(load);
         </a-form-item>
         <a-row :gutter="12">
           <a-col :span="12"><a-form-item label="TTL"><a-input-number v-model:value="form.ttl" style="width: 100%" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="Serial"><a-input-number v-model:value="form.serial" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('zones.serial')"><a-input-number v-model:value="form.serial" style="width: 100%" /></a-form-item></a-col>
         </a-row>
-        <a-form-item label="Primary NS"><a-input v-model:value="form.primary_ns" /></a-form-item>
-        <a-form-item label="Admin email"><a-input v-model:value="form.admin_email" /></a-form-item>
+        <a-form-item :label="t('zones.primaryNs')"><a-input v-model:value="form.primary_ns" /></a-form-item>
+        <a-form-item :label="t('zones.adminEmail')"><a-input v-model:value="form.admin_email" /></a-form-item>
         <a-row :gutter="12">
-          <a-col :span="12"><a-form-item label="Refresh"><a-input-number v-model:value="form.refresh" style="width: 100%" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="Retry"><a-input-number v-model:value="form.retry" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('zones.refresh')"><a-input-number v-model:value="form.refresh" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('zones.retry')"><a-input-number v-model:value="form.retry" style="width: 100%" /></a-form-item></a-col>
         </a-row>
         <a-row :gutter="12">
-          <a-col :span="12"><a-form-item label="Expire"><a-input-number v-model:value="form.expire" style="width: 100%" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="Minimum TTL"><a-input-number v-model:value="form.minimum_ttl" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('zones.expire')"><a-input-number v-model:value="form.expire" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item :label="t('zones.minimumTtl')"><a-input-number v-model:value="form.minimum_ttl" style="width: 100%" /></a-form-item></a-col>
         </a-row>
         <a-form-item label="allow-transfer"><a-input v-model:value="form.allow_transfer" placeholder="secondary-acl, 10.0.0.2" /></a-form-item>
         <a-form-item label="allow-update"><a-input v-model:value="form.allow_update" /></a-form-item>

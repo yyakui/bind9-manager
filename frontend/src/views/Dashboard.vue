@@ -5,6 +5,7 @@ import { computed, h, onMounted, ref } from 'vue';
 
 import { aclsApi, auditApi, backupApi, monitoringApi, viewsApi, zonesApi } from '../api/client';
 import type { ACL, AuditLog, BackupItem, DNSView, MonitoringStatus, Zone } from '../api/types';
+import { useI18n } from '../i18n';
 
 const loading = ref(false);
 const zones = ref<Zone[]>([]);
@@ -13,6 +14,7 @@ const views = ref<DNSView[]>([]);
 const backups = ref<BackupItem[]>([]);
 const audits = ref<AuditLog[]>([]);
 const status = ref<MonitoringStatus | null>(null);
+const { t } = useI18n();
 
 const load = async () => {
   loading.value = true;
@@ -32,7 +34,7 @@ const load = async () => {
     audits.value = auditList;
     status.value = monitorStatus;
   } catch {
-    message.error('Failed to load dashboard');
+    message.error(t('dashboard.loadFailed'));
   } finally {
     loading.value = false;
   }
@@ -47,7 +49,7 @@ onMounted(load);
 <template>
   <div class="page">
     <div class="page-header">
-      <h1 class="page-title">Dashboard</h1>
+      <h1 class="page-title">{{ t('nav.dashboard') }}</h1>
       <div class="page-actions">
         <a-button :icon="h(ReloadOutlined)" :loading="loading" @click="load" />
       </div>
@@ -55,27 +57,27 @@ onMounted(load);
 
     <div class="metric-grid">
       <div class="metric-card">
-        <div class="metric-label">Zones</div>
+        <div class="metric-label">{{ t('nav.zones') }}</div>
         <div class="metric-value">{{ zones.length }}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Records</div>
+        <div class="metric-label">{{ t('dashboard.records') }}</div>
         <div class="metric-value">{{ zones.reduce((total, zone) => total + zone.records.length, 0) }}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">ACLs / Views</div>
+        <div class="metric-label">{{ t('dashboard.aclsViews') }}</div>
         <div class="metric-value">{{ acls.length }} / {{ views.length }}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">DNSSEC Signed</div>
+        <div class="metric-label">{{ t('dashboard.dnssecSigned') }}</div>
         <div class="metric-value">{{ signedZones }}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Backups</div>
+        <div class="metric-label">{{ t('dashboard.backups') }}</div>
         <div class="metric-value">{{ backups.length }}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Active Alerts</div>
+        <div class="metric-label">{{ t('dashboard.activeAlerts') }}</div>
         <div class="metric-value" :class="alertCount ? 'status-bad' : 'status-ok'">{{ alertCount }}</div>
       </div>
     </div>
@@ -87,19 +89,19 @@ onMounted(load);
             <a-space>
               <CheckCircleOutlined v-if="status?.named_running" class="status-ok" />
               <WarningOutlined v-else class="status-bad" />
-              <strong>named status</strong>
+              <strong>{{ t('dashboard.namedStatus') }}</strong>
               <a-tag :color="status?.named_running ? 'green' : 'red'">
-                {{ status?.named_running ? 'running' : 'not healthy' }}
+                {{ status?.named_running ? t('common.running') : t('dashboard.notHealthy') }}
               </a-tag>
             </a-space>
             <a-descriptions size="small" :column="1" bordered>
-              <a-descriptions-item label="Query latency">
+              <a-descriptions-item :label="t('dashboard.queryLatency')">
                 {{ status?.query_latency_ms ?? 'n/a' }} ms
               </a-descriptions-item>
               <a-descriptions-item label="rndc">
-                {{ status?.rndc_status.ok ? 'ok' : status?.rndc_status.stderr || 'failed' }}
+                {{ status?.rndc_status.ok ? t('common.ok') : status?.rndc_status.stderr || t('common.failed') }}
               </a-descriptions-item>
-              <a-descriptions-item label="Generated">
+              <a-descriptions-item :label="t('common.generated')">
                 {{ status?.generated_at || 'n/a' }}
               </a-descriptions-item>
             </a-descriptions>
@@ -109,13 +111,13 @@ onMounted(load);
       <a-col :xs="24" :lg="12">
         <div class="section">
           <a-list size="small" :data-source="audits.slice(0, 6)">
-            <template #header><strong>Recent writes</strong></template>
+            <template #header><strong>{{ t('dashboard.recentWrites') }}</strong></template>
             <template #renderItem="{ item }">
               <a-list-item>
                 <a-space>
                   <a-tag>{{ item.method }}</a-tag>
                   <span>{{ item.path }}</span>
-                  <span class="muted">{{ item.username || 'anonymous' }}</span>
+                  <span class="muted">{{ item.username || t('dashboard.anonymous') }}</span>
                 </a-space>
               </a-list-item>
             </template>

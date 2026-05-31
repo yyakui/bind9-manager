@@ -1,24 +1,26 @@
 <script setup lang="ts">
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
-import { h, onMounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, reactive, ref } from 'vue';
 
 import { tsigApi } from '../api/client';
 import { joinList, parseList } from '../api/form';
 import type { TSIGKey } from '../api/types';
+import { useI18n } from '../i18n';
 
 const loading = ref(false);
 const modalOpen = ref(false);
 const keys = ref<TSIGKey[]>([]);
 const form = reactive({ name: '', algorithm: 'hmac-sha256', secret: '', zones: '', allow_update_zones: '' });
+const { t } = useI18n();
 
-const columns = [
-  { title: 'Name', dataIndex: 'name', key: 'name' },
-  { title: 'Algorithm', dataIndex: 'algorithm', key: 'algorithm', width: 160 },
-  { title: 'Zones', key: 'zones' },
-  { title: 'Secret', dataIndex: 'secret', key: 'secret' },
-  { title: 'Actions', key: 'actions', width: 90 },
-];
+const columns = computed(() => [
+  { title: t('common.name'), dataIndex: 'name', key: 'name' },
+  { title: t('common.algorithm'), dataIndex: 'algorithm', key: 'algorithm', width: 160 },
+  { title: t('nav.zones'), key: 'zones' },
+  { title: t('common.secret'), dataIndex: 'secret', key: 'secret' },
+  { title: t('common.actions'), key: 'actions', width: 90 },
+]);
 
 const load = async () => {
   loading.value = true;
@@ -43,16 +45,16 @@ const save = async () => {
     allow_update_zones: parseList(form.allow_update_zones),
   });
   modalOpen.value = false;
-  message.success('TSIG key saved');
+  message.success(t('tsig.saved'));
   await load();
 };
 
 const remove = (key: TSIGKey) => {
   Modal.confirm({
-    title: `Delete ${key.name}?`,
+    title: t('common.confirmDelete', { name: key.name }),
     onOk: async () => {
       await tsigApi.remove(key.id);
-      message.success('TSIG key deleted');
+      message.success(t('tsig.deleted'));
       await load();
     },
   });
@@ -64,10 +66,10 @@ onMounted(load);
 <template>
   <div class="page">
     <div class="page-header">
-      <h1 class="page-title">TSIG Keys</h1>
+      <h1 class="page-title">{{ t('tsig.title') }}</h1>
       <div class="page-actions">
         <a-button :icon="h(ReloadOutlined)" :loading="loading" @click="load" />
-        <a-button type="primary" :icon="h(PlusOutlined)" @click="openCreate">New key</a-button>
+        <a-button type="primary" :icon="h(PlusOutlined)" @click="openCreate">{{ t('tsig.new') }}</a-button>
       </div>
     </div>
 
@@ -85,13 +87,13 @@ onMounted(load);
       </template>
     </a-table>
 
-    <a-modal v-model:open="modalOpen" title="New TSIG key" @ok="save">
+    <a-modal v-model:open="modalOpen" :title="t('tsig.newTitle')" @ok="save">
       <a-form layout="vertical">
-        <a-form-item label="Name"><a-input v-model:value="form.name" /></a-form-item>
-        <a-form-item label="Algorithm"><a-input v-model:value="form.algorithm" /></a-form-item>
-        <a-form-item label="Secret"><a-input v-model:value="form.secret" placeholder="Leave empty to generate" /></a-form-item>
-        <a-form-item label="Zone transfer zones"><a-input v-model:value="form.zones" /></a-form-item>
-        <a-form-item label="allow-update zones"><a-input v-model:value="form.allow_update_zones" /></a-form-item>
+        <a-form-item :label="t('common.name')"><a-input v-model:value="form.name" /></a-form-item>
+        <a-form-item :label="t('common.algorithm')"><a-input v-model:value="form.algorithm" /></a-form-item>
+        <a-form-item :label="t('common.secret')"><a-input v-model:value="form.secret" :placeholder="t('tsig.leaveEmpty')" /></a-form-item>
+        <a-form-item :label="t('tsig.zoneTransferZones')"><a-input v-model:value="form.zones" /></a-form-item>
+        <a-form-item :label="t('tsig.allowUpdateZones')"><a-input v-model:value="form.allow_update_zones" /></a-form-item>
       </a-form>
     </a-modal>
   </div>
