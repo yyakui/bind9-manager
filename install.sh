@@ -34,6 +34,7 @@ usermod -a -G bind "${APP_USER}" || true
 
 mkdir -p "${APP_DIR}" "${DATA_DIR}/backups" "${DATA_DIR}/generated" "${ENV_DIR}" "${BIND_MANAGER_CONF_DIR}" "${BIND_MANAGER_ZONE_DIR}"
 rsync -a --delete \
+  --exclude .git \
   --exclude backend/.venv \
   --exclude backend/.runtime \
   --exclude frontend/node_modules \
