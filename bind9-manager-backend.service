@@ -1,0 +1,17 @@
+[Unit]
+Description=BIND9 Manager Backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bind9-manager
+Group=bind9-manager
+WorkingDirectory=/opt/bind9-manager/backend
+EnvironmentFile=-/etc/bind9-manager/backend.env
+ExecStart=/opt/bind9-manager/backend/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

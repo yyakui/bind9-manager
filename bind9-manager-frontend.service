@@ -1,0 +1,16 @@
+[Unit]
+Description=BIND9 Manager Frontend
+After=network-online.target bind9-manager-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bind9-manager
+Group=bind9-manager
+WorkingDirectory=/opt/bind9-manager/frontend
+ExecStart=/usr/bin/npm run preview -- --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
